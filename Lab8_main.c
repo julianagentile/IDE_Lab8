@@ -21,6 +21,7 @@
 // change to Heap_Size       EQU     0x00000200 in startup_msp432p401r_uvision.s
 
 #define ADC_MAX 16384.0   // 14-bit ADC resolution
+#define ADC_THRESHOLD 9830.0
 #define VREF 2.5          // Reference voltage in Volts
 
 //#define THRESHOLD_VOLTAGE 1.2  // Adjust based on your sensor output
@@ -78,9 +79,13 @@ int main(void)
 
 	Timer32_1_Init(&Timer32_1_ISR, SystemCoreClock/2, T32DIV1); // initialize Timer A32-1;
 
+// take adc value array, make it bigger (large enough to accomodate slowest frequency).
+// Sample adc and fill that array
+// 
+	
 	EnableInterrupts();
-	unsigned long last_beat_time = 0;
-	unsigned long current_beat_time = 0;	
+	double last_beat_time = 0.0;
+	double current_beat_time = 0.0;	
 	int adcvals[3];
 	int beat_count = 0;
 	int adc_peak = 0;
@@ -95,29 +100,29 @@ int main(void)
 					adcvals[1] = adcvals[0];
 					adcvals[0] = adc_heartrate;
 					new_heartbeat_data = FALSE;
-					if (adcvals[0] < adcvals[1] && adcvals[1] > adcvals[2]) {
-						current_beat_time = MillisecondCounter;
-            unsigned long interval = current_beat_time - last_beat_time;
+					//if (adcvals[0] < adcvals[1] && adcvals[1] > adcvals[2]) {
+					if(adcvals[1] > ADC_THRESHOLD && adcvals[1] > adcvals[0]){
+						current_beat_time = MillisecondCounter/1000.0;
+            double interval = (current_beat_time - last_beat_time);
 
-            //if (interval > (double)(MIN_HEARTBEAT_INTERVAL_MS)/1000.0) {
-							heartrate_bpm = (double)(MAX_BPM) / (double)(interval);
-							//heartrate_bpm = 60000.0 / ((double)(interval));
+            //if (interval > (MIN_HEARTBEAT_INTERVAL_MS)/1000.0) {
+							heartrate_bpm = (double)(MAX_BPM) / (double)(interval*2000.0);
+							//heartrate_bpm = 60.0 / ((double)(interval*1000.0));
+						sprintf(heartrate, "\r\nLast Time %f", last_beat_time);
+						uart0_put(heartrate);
 							last_beat_time = current_beat_time;
 							isPeak = 1;
 							adc_peak = adcvals[1];
 							beat_count++;
 						//}
 							
-						sprintf(heartrate, "\r\nCurrent Time %lu", current_beat_time);
-							uart0_put(heartrate);
-						
-						sprintf(heartrate, "\r\nLast Time %lu", last_beat_time);
-							uart0_put(heartrate);
+						sprintf(heartrate, "\r\nCurrent Time %f", current_beat_time);
+						uart0_put(heartrate);
 						
 							sprintf(heartrate, "\r\nBeat #%d", beat_count);
 							uart0_put(heartrate);
 
-							sprintf(heartrate, "\r\nInterval: %lu ms", interval);
+							sprintf(heartrate, "\r\nInterval: %f ms", interval);
 							uart0_put(heartrate);
 
 							sprintf(heartrate, "\r\nHeartrate is %u BPM\n", (int)(heartrate_bpm));
