@@ -90,8 +90,6 @@ int main(void)
 	int beat_count = 0;
 	int adc_peak = 0;
 	
-  while(1)
-	{
 		for (;;) {
 			isPeak = 0;
 			while(!isPeak){
@@ -155,5 +153,5 @@ int main(void)
 				//uart0_put(heartrate);
 			//}
 		}	
-	}
+	
 }
